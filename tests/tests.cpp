@@ -2,7 +2,7 @@
 #include "../cpptools/misc/ConsoleLogger.hpp"
 
 #ifdef TEST
-// TODO add tests here
+#include "test_TcpServer.hpp"
 #endif // TEST
 
 int main(int argc, char** argv) {
