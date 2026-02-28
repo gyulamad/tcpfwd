@@ -1,0 +1,3 @@
+(timeout 1 ./buil
+der tests/tests.cpp --mode=coverage,strict,test --coverage-exclude "cp
+ptools/misc/*" --run) && echo "[OK]" || echo "[ERROR] ($?)"
