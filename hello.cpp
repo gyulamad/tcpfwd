@@ -4,10 +4,10 @@
 
 using namespace std;
 
-class HttpHostApplication: public App<ConsoleLogger, Arguments> {
+class HelloApplication: public App<ConsoleLogger, Arguments> {
 public:
     using App::App;
-    virtual ~HttpHostApplication() {}
+    virtual ~HelloApplication() {}
 
     virtual int process() override {
         return 0;
@@ -15,5 +15,5 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    return HttpHostApplication(argc, argv);
+    return HelloApplication(argc, argv);
 }

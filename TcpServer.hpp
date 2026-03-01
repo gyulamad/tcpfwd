@@ -21,16 +21,25 @@
 using namespace std;
 
 // =============================================================================
-// TcpServer
-//   - Non-blocking, select()-based, single-threaded event loop
-//   - Subclass and override the virtual hooks to implement your server logic
+// TcpServer  —  pure transport layer
+//
+//   Responsibilities:
+//     - Accept and track client connections
+//     - Deliver raw bytes to subclasses via onRawData()
+//     - Flush outbound bytes via sendToClient()
+//     - Fire lifecycle hooks: connect / disconnect / error / tick
+//
+//   Explicitly NOT a responsibility:
+//     - Any message framing (line-splitting, HTTP parsing, etc.)
+//     - Any application logic
+//
+//   Subclass and implement onRawData() to define your protocol framing.
 // =============================================================================
 class TcpServer {
 public:
-    TcpServer(): listenFd(-1), running(false) {}
+    TcpServer() : listenFd(-1), running(false) {}
     virtual ~TcpServer() { stop(); }
 
-    // Start the server: bind, listen, enter event loop (blocks until stop())
     void listen(uint16_t port) {
         setupListenSocket(port);
         running = true;
@@ -42,27 +51,32 @@ public:
     void stop() { running = false; }
 
 protected:
-    // == Override these hooks in your subclass =================================
+    // == Lifecycle hooks =======================================================
 
     virtual void onServerStart(uint16_t /*port*/) {}
     virtual void onServerStop() {}
 
-    // fd         : file descriptor identifying this client (unique per connection)
+    // fd         : file descriptor identifying this client
     // remoteAddr : "ip:port" string
     virtual void onClientConnect(int /*fd*/, const string& /*remoteAddr*/) {}
-
-    // message : one complete line (newline stripped)
-    virtual void onClientMessage(int /*fd*/, const string& /*message*/) {}
-
     virtual void onClientDisconnect(int /*fd*/) {}
     virtual void onClientError(int /*fd*/, const string& /*error*/) {}
 
-    // Called every ~100 ms regardless of activity (useful for timers, etc.)
+    // Called every ~100 ms regardless of socket activity.
+    // Useful for timers, drip-sending, keepalives, etc.
     virtual void onTick() {}
 
-    // == Utilities available to subclasses =====================================
+    // == Data hook — implement your framing here ===============================
+    //
+    // Called whenever bytes arrive from a client.
+    // buf contains ALL unprocessed bytes for this connection (accumulates
+    // across calls). Consume fully-parsed frames by erasing from the front.
+    // Leave any incomplete tail in place — it will be prepended to the next
+    // incoming chunk automatically.
+    virtual void onRawData(int fd, string& buf) = 0;
 
-    // Queue data to be sent to a client (rate-limited by the server's tick)
+    // == Utilities =============================================================
+
     void sendToClient(int fd, const string& data) {
         auto it = clients.find(fd);
         if (it != clients.end())
@@ -79,11 +93,23 @@ protected:
         clients.erase(it);
     }
 
+    // Finish draining the send queue, then disconnect.
+    // Safe to call from inside any hook — won't close mid-write.
+    void closeAfterFlush(int fd) {
+        auto it = clients.find(fd);
+        if (it == clients.end()) return;
+        if (it->second.sendQueue.empty())
+            disconnectClient(fd);
+        else
+            it->second.pendingClose = true;
+    }
+
 private:
     struct ClientState {
         string remoteAddr;
         string recvBuf;
         deque<char> sendQueue;
+        bool pendingClose = false;
     };
 
     int listenFd;
@@ -111,7 +137,7 @@ private:
             throw ERROR("listen(): " + errStr());
     }
 
-    // == Main event loop =======================================================
+    // == Event loop ============================================================
     void eventLoop() {
         while (running) {
             fd_set readSet, writeSet;
@@ -123,13 +149,11 @@ private:
 
             for (auto& [fd, st] : clients) {
                 FD_SET(fd, &readSet);
-                if (!st.sendQueue.empty())
-                    FD_SET(fd, &writeSet);
+                if (!st.sendQueue.empty()) FD_SET(fd, &writeSet);
                 if (fd > maxFd) maxFd = fd;
             }
 
-            // Wake up every N ms so rate-limiter and onTick() fire regularly
-            timeval tv{0, 100'000};
+            timeval tv{0, 100'000}; // 100 ms — keeps onTick() responsive
             int ready = ::select(maxFd + 1, &readSet, &writeSet, nullptr, &tv);
             if (ready < 0) {
                 if (errno == EINTR) continue;
@@ -141,7 +165,7 @@ private:
             if (FD_ISSET(listenFd, &readSet))
                 acceptClients();
 
-            // Snapshot fd list — callbacks may add/remove clients
+            // Snapshot fds — hooks may add/remove clients mid-iteration
             vector<int> fds;
             fds.reserve(clients.size());
             for (auto& [fd, _] : clients) fds.push_back(fd);
@@ -173,10 +197,9 @@ private:
 
             char ipBuf[INET_ADDRSTRLEN]{};
             inet_ntop(AF_INET, &addr.sin_addr, ipBuf, sizeof(ipBuf));
-            string remote = string(ipBuf) + ":" +
-                                 to_string(ntohs(addr.sin_port));
+            string remote = string(ipBuf) + ":" + to_string(ntohs(addr.sin_port));
 
-            clients[cfd] = ClientState{remote, {}, {}};
+            clients[cfd] = ClientState{remote, {}, {}, false};
             onClientConnect(cfd, remote);
         }
     }
@@ -194,22 +217,13 @@ private:
 
         auto& st = clients[fd];
         st.recvBuf.append(buf, n);
-
-        size_t pos;
-        while ((pos = st.recvBuf.find('\n')) != string::npos) {
-            string msg = st.recvBuf.substr(0, pos);
-            if (!msg.empty() && msg.back() == '\r') msg.pop_back();
-            st.recvBuf.erase(0, pos + 1);
-            onClientMessage(fd, msg);
-        }
+        onRawData(fd, st.recvBuf);
     }
 
     void handleWrite(int fd) {
         auto& st = clients[fd];
         if (st.sendQueue.empty()) return;
 
-        // Send as much as the socket will accept in one go
-        // (callers control pacing by how much they enqueue via sendToClient)
         string buf(st.sendQueue.begin(), st.sendQueue.end());
         ssize_t n = ::send(fd, buf.data(), buf.size(), MSG_NOSIGNAL);
         if (n < 0) {
@@ -219,6 +233,9 @@ private:
             return;
         }
         st.sendQueue.erase(st.sendQueue.begin(), st.sendQueue.begin() + n);
+
+        if (st.pendingClose && st.sendQueue.empty())
+            disconnectClient(fd);
     }
 
     static void setNonBlocking(int fd) {

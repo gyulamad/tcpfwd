@@ -2,22 +2,22 @@
 #include "cpptools/misc/Arguments.hpp"
 #include "cpptools/misc/ConsoleLogger.hpp"
 
-#include "TcpEchoServer.hpp"
+#include "EchoServer.hpp"
 
 using namespace std;
 
-class TcpEchoApplication: public App<ConsoleLogger, Arguments> {
+class EchoApplication: public App<ConsoleLogger, Arguments> {
 public:
     using App::App;
-    virtual ~TcpEchoApplication() {}
+    virtual ~EchoApplication() {}
 
     virtual int process() override {
-        TcpEchoServer s;
+        EchoServer s;
         s.listen(9090);
         return 0;
     }
 };
 
 int main(int argc, char* argv[]) {
-    return TcpEchoApplication(argc, argv);
+    return EchoApplication(argc, argv);
 }

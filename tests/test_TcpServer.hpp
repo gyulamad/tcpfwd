@@ -5,14 +5,14 @@
 #include "../cpptools/misc/TEST.hpp"
 #include "../cpptools/misc/capture_cout.hpp"
 #include <thread>
-#include "../TcpEchoServer.hpp"
+#include "../EchoServer.hpp"
 #include "../TcpClient.hpp"
 
 using namespace std;
 
 TEST(test_TcpServer_echo_single_client) {
     capture_cout([]() {
-        TcpEchoServer s;
+        EchoServer s;
         thread st([&s]() { s.listen(9090); });
         TcpClient c;
         c.connect("localhost", 9090);
@@ -27,7 +27,7 @@ TEST(test_TcpServer_echo_single_client) {
 
 TEST(test_TcpServer_echo_multi_client) {
     capture_cout([]() {
-        TcpEchoServer s;
+        EchoServer s;
         thread st([&s]() { s.listen(9090); });
 
         TcpClient c1, c2, c3;
