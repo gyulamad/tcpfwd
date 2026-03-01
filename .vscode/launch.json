@@ -33,7 +33,7 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/hello",
 			"args": [
-                "--port=9090"
+                "9090"
             ],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",

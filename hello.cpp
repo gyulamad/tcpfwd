@@ -12,8 +12,10 @@ public:
     virtual ~HelloApplication() {}
 
     virtual int process() override {
-        HelloServer server;
-        server.listen(8081);
+        args.addHelp(1, "port", "Listening port number");
+        int port = args.get<int>(1);
+        HelloServer server;        
+        server.listen(port);
         return 0;
     }
 };
