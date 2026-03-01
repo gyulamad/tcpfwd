@@ -56,8 +56,8 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/proxy",
 			"args": [
-                // "9091", "localhost", "9090"
-                "9091", "192.168.1.197", "8080" // llamacpp-server
+                "9091", "localhost:9090" // testing with hello
+                // "9091", "192.168.1.197:8080" // llamacpp-server
             ],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",

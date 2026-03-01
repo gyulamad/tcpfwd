@@ -104,7 +104,8 @@ protected:
             it->second.pendingClose = true;
     }
 
-private:
+    // == Protected members for subclass access =================================
+
     struct ClientState {
         string remoteAddr;
         string recvBuf;
@@ -116,29 +117,8 @@ private:
     atomic<bool> running;
     unordered_map<int, ClientState> clients;
 
-    // == Socket setup ==========================================================
-    void setupListenSocket(uint16_t port) {
-        listenFd = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (listenFd < 0) throw ERROR("socket(): " + errStr());
-
-        int opt = 1;
-        ::setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-        setNonBlocking(listenFd);
-
-        sockaddr_in addr{};
-        addr.sin_family      = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port        = htons(port);
-
-        if (::bind(listenFd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
-            throw ERROR("bind(): " + errStr());
-
-        if (::listen(listenFd, SOMAXCONN) < 0)
-            throw ERROR("listen(): " + errStr());
-    }
-
-    // == Event loop ============================================================
-    void eventLoop() {
+    // == Event loop - can be overridden by subclasses =========================
+    virtual void eventLoop() {
         while (running) {
             fd_set readSet, writeSet;
             FD_ZERO(&readSet);
@@ -244,4 +224,26 @@ private:
     }
 
     static string errStr() { return strerror(errno); }
+
+private:
+    // == Socket setup ==========================================================
+    void setupListenSocket(uint16_t port) {
+        listenFd = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (listenFd < 0) throw ERROR("socket(): " + errStr());
+
+        int opt = 1;
+        ::setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setNonBlocking(listenFd);
+
+        sockaddr_in addr{};
+        addr.sin_family      = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port        = htons(port);
+
+        if (::bind(listenFd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
+            throw ERROR("bind(): " + errStr());
+
+        if (::listen(listenFd, SOMAXCONN) < 0)
+            throw ERROR("listen(): " + errStr());
+    }
 };
