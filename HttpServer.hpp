@@ -273,7 +273,7 @@ private:
 
     // == Dispatch and reset ====================================================
     void dispatchRequest(int fd, ParseState& ps) {
-        HttpRequest req  = move(ps.request);
+        HttpRequest req  = ::move(ps.request);
         bool        keep = req.keepAlive();
 
         ps = ParseState{}; // reset for next request (keep-alive)
