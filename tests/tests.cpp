@@ -3,6 +3,7 @@
 
 #ifdef TEST
 #include "test_TcpServer.hpp"
+#include "test_HttpServer.hpp"
 #endif // TEST
 
 int main(int argc, char** argv) {
