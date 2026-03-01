@@ -12,8 +12,10 @@ public:
     virtual ~EchoApplication() {}
 
     virtual int process() override {
+        args.addHelp(1, "port", "Listening port number");
+        int port = args.get<int>(1);
         EchoServer s;
-        s.listen(9090);
+        s.listen(port);
         return 0;
     }
 };

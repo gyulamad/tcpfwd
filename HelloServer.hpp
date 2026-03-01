@@ -2,14 +2,18 @@
 
 #include "HttpServer.hpp"
 #include <iostream>
+#include <deque>
+#include <unordered_map>
+#include <chrono>
 
 using namespace std;
 
 // =============================================================================
 // HelloServer
 //
-//   A simple HTTP server that serves a "Hello World" page.
-//   Demonstrates the HttpServer interface by implementing onHttpRequest().
+//   A simple HTTP server that serves a "Hello World" page slowly,
+//   outputting content character by character to demonstrate concurrent
+//   client handling.
 // =============================================================================
 class HelloServer : public HttpServer {
 public:
@@ -31,20 +35,64 @@ protected:
 
     void onHttpClientDisconnect(int fd) override {
         cout << "[-] Client " << fd << " disconnected." << endl;
+        dripQueues.erase(fd);
     }
 
     void onHttpRequest(int fd, const HttpRequest& req) override {
         cout << "[" << fd << "] " << req.method << " " << req.path << endl;
 
-        // Serve the Hello World page for any GET request
-        if (req.method == "GET") {
-            sendHttpResponse(fd, HttpResponse::html(getHelloPage()));
-        } else {
+        if (req.method != "GET") {
             sendHttpResponse(fd, HttpResponse::methodNotAllowed());
+            closeAfterFlush(fd);
+            return;
+        }
+
+        // Queue the full response for drip-feeding
+        string response = HttpResponse::html(getHelloPage()).serialize();
+        auto& queue = dripQueues[fd];
+        for (char c : response)
+            queue.pending.push_back(c);
+        queue.lastSend = chrono::steady_clock::now();
+    }
+
+    // Drip one character per tick (~100ms) per client
+    void onTick() override {
+        auto now = chrono::steady_clock::now();
+        for (auto& [fd, state] : dripQueues) {
+            if (state.pending.empty()) continue;
+            
+            auto elapsed = chrono::duration_cast<chrono::milliseconds>(
+                now - state.lastSend).count();
+            if (elapsed < 10) continue;  // some delay for testing
+            
+            string nxt = "";
+            while (true) {
+                char c = state.pending.front();
+                state.pending.pop_front();
+                nxt += c;
+                if (c == ' ') break;
+                if (state.pending.empty()) break;
+            }
+            
+            state.lastSend = now;
+            
+            cout << nxt << flush;
+            sendToClient(fd, nxt);
+            
+            // Close connection after sending last character
+            if (state.pending.empty())
+                closeAfterFlush(fd);
         }
     }
 
 private:
+    struct DripState {
+        deque<char> pending;
+        chrono::steady_clock::time_point lastSend = chrono::steady_clock::now();
+    };
+
+    unordered_map<int, DripState> dripQueues;
+
     static string getHelloPage() {
         return R"(<!DOCTYPE html>
 <html lang="en">
