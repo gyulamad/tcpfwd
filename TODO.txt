@@ -14,6 +14,25 @@ just waiting it turns off automagically.
 
 ** TODOs and Plans: **
 
+- Test constants: We need a test config that we can set up for
+port numbers, delays etc. for different test environments. If
+the unit tests for example running on a machine that already
+uses the same port as the tests or too slow/fast 
+that could break the tests so we have to be able to replace
+these numbers in a central config place instead hard coding 
+them in each tests.
+
+- cleanup EchoServer and HelloServer:
+these two class made for testing in a way these having a delay
+in the response. We need to clean it up.
+Intorduce a SlowEchoServer and a SlowHelloServer class that
+extending the original cleaned version of the EchoServer and the HelloServer 
+then replace all the usage of the Echo and Hello server to the Slow version to
+making sure we are not breaking any tests or behaviors we have right now,
+so this way later I can choose which version I want to use in my code 
+when I want to test or demonstrate the networking.
+
+
 - replace TcpClient.hpp with TcpClientNB.hpp
     rename TcpClientNB to TcpClient and remove the old (deprecated) TcpClient as it was created for testing only.
     you probably should refactor the existing tests and every other usages of the old TcpClient class to use the new one.
