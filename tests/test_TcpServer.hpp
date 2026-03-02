@@ -6,7 +6,7 @@
 #include "../cpptools/misc/capture_cout.hpp"
 #include <thread>
 #include "../EchoServer.hpp"
-#include "../TcpClient.hpp"
+#include "../TcpClientB.hpp"
 
 using namespace std;
 
@@ -14,7 +14,7 @@ TEST(test_TcpServer_echo_single_client) {
     capture_cout([]() {
         EchoServer s;
         thread st([&s]() { s.listen(9090); });
-        TcpClient c;
+        TcpClientB c;
         c.connect("localhost", 9090);
         c.send("Hello!");
         while (!c.available()); // waiting for response...
@@ -30,7 +30,7 @@ TEST(test_TcpServer_echo_multi_client) {
         EchoServer s;
         thread st([&s]() { s.listen(9090); });
 
-        TcpClient c1, c2, c3;
+        TcpClientB c1, c2, c3;
         string echo1, echo2, echo3;
         double elapsed1, elapsed2, elapsed3;
 

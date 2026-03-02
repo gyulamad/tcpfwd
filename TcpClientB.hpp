@@ -18,7 +18,7 @@
 using namespace std;
 
 // =============================================================================
-// TcpClient  –  simple blocking client intended for testing.
+// TcpClientB  –  simple blocking client intended for testing.
 //
 //   TcpClient c;
 //   c.connect("localhost", 9090);
@@ -27,11 +27,11 @@ using namespace std;
 //   string reply = c.read();   // reads one complete line
 //   c.disconnect();
 // =============================================================================
-class TcpClient {
+class TcpClientB {
 public:
-    TcpClient() : fd(-1) {}
+    TcpClientB() : fd(-1) {}
 
-    ~TcpClient() { disconnect(); }
+    ~TcpClientB() { disconnect(); }
 
     // Resolve host and connect (blocking)
     void connect(const string& host, uint16_t port) {

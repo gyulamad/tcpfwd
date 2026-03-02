@@ -10,7 +10,8 @@
 #include <chrono>
 #include "../TcpProxy.hpp"
 #include "../EchoServer.hpp"
-#include "../TcpClient.hpp"
+#include "../TcpClientB.hpp"
+#include "TestTcpUtils.hpp"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ using namespace std;
 // Test strategy:
 //   1. Start an EchoServer as the backend
 //   2. Start TcpProxy to forward from proxy port to backend port
-//   3. Connect TcpClient(s) to the proxy
+//   3. Connect TcpClientB(s) to the proxy
 //   4. Verify bidirectional forwarding works correctly
 //
 // NOTE: Each test uses different ports to avoid conflicts when tests run
@@ -29,49 +30,11 @@ using namespace std;
 //       Tests include delays to allow ports to be released between tests.
 // =============================================================================
 
-// Helper: wait for a client to have data available (with timeout)
-static bool wait_for_available(TcpClient& client, int timeoutMs = 2000) {
-    auto start = chrono::steady_clock::now();
-    while (!client.available()) {
-        auto elapsed = chrono::duration_cast<chrono::milliseconds>(
-            chrono::steady_clock::now() - start).count();
-        if (elapsed > timeoutMs) return false;
-        this_thread::sleep_for(chrono::milliseconds(10));
-    }
-    return true;
-}
-
-// Helper: wait for port to be available after test
-static void wait_for_port_release(int delayMs = 1000) {
-    this_thread::sleep_for(chrono::milliseconds(delayMs));
-}
-
-// Helper: shutdown backend and stop proxy
-static void shutdown_test_resources(EchoServer& /*backend*/, thread& backendThread, 
-                                    TcpProxy& proxy, thread& proxyThread,
-                                    int backendPort) {
-    // Send shutdown to backend directly
-    TcpClient shutdownClient;
-    try {
-        shutdownClient.connect("localhost", backendPort);
-        shutdownClient.send("shutdown");
-    } catch (...) {
-        // Ignore if shutdown fails
-    }
-    
-    // Wait for backend to stop
-    if (backendThread.joinable()) backendThread.join();
-    
-    // Stop proxy
-    proxy.stop();
-    if (proxyThread.joinable()) proxyThread.join();
-}
-
 // =============================================================================
 // Test: should accept tcp client connections
 // =============================================================================
 TEST(test_TcpProxy_accept_client_connections) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout_cerr([]() {
         // Start backend echo server on port 5001
@@ -87,7 +50,7 @@ TEST(test_TcpProxy_accept_client_connections) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect a client - this tests that proxy accepts connections
-        TcpClient client;
+        TcpClientB client;
         bool connected = false;
         try {
             client.connect("localhost", 6001);
@@ -96,7 +59,7 @@ TEST(test_TcpProxy_accept_client_connections) {
             connected = false;
         }
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5001);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5001);
         
         assert(connected && "Proxy should accept client connections");
     });
@@ -106,7 +69,7 @@ TEST(test_TcpProxy_accept_client_connections) {
 // Test: should build up and maintain a channel for each client to the server
 // =============================================================================
 TEST(test_TcpProxy_maintain_channel_per_client) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout([]() {
         // Start backend echo server on port 5002
@@ -122,7 +85,7 @@ TEST(test_TcpProxy_maintain_channel_per_client) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect multiple clients - each should get its own backend channel
-        TcpClient client1, client2;
+        TcpClientB client1, client2;
         client1.connect("localhost", 6002);
         client2.connect("localhost", 6002);
         
@@ -131,14 +94,14 @@ TEST(test_TcpProxy_maintain_channel_per_client) {
         client2.send("msg2");
         
         // Wait for responses (echo server drips chars, so we need more time)
-        bool avail1 = wait_for_available(client1, 3000);
-        bool avail2 = wait_for_available(client2, 3000);
+        bool avail1 = TestTcpUtils::wait_for_available(client1, 3000);
+        bool avail2 = TestTcpUtils::wait_for_available(client2, 3000);
         
         string response1, response2;
         if (avail1) response1 = client1.read();
         if (avail2) response2 = client2.read();
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5002);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5002);
         
         assert(avail1 && "Client 1 should receive response through proxy");
         assert(avail2 && "Client 2 should receive response through proxy");
@@ -151,7 +114,7 @@ TEST(test_TcpProxy_maintain_channel_per_client) {
 // Test: should forward data from client to server and back
 // =============================================================================
 TEST(test_TcpProxy_forward_data_bidirectional) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout([]() {
         // Start backend echo server on port 5003
@@ -167,18 +130,18 @@ TEST(test_TcpProxy_forward_data_bidirectional) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect client and send message through proxy
-        TcpClient client;
+        TcpClientB client;
         client.connect("localhost", 6003);
         
         // Test: client -> proxy -> backend (forward)
         client.send("HelloThroughProxy");
         
         // Test: backend -> proxy -> client (backward)
-        bool available = wait_for_available(client, 3000);
+        bool available = TestTcpUtils::wait_for_available(client, 3000);
         string response;
         if (available) response = client.read();
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5003);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5003);
         
         assert(available && "Response should be forwarded back through proxy");
         assert(response == "HelloThroughProxy" && "Data should be forwarded bidirectionally");
@@ -189,7 +152,7 @@ TEST(test_TcpProxy_forward_data_bidirectional) {
 // Test: should handle client disconnects gracefully
 // =============================================================================
 TEST(test_TcpProxy_handle_client_disconnect) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout_cerr([]() {
         // Start backend echo server on port 5004
@@ -205,7 +168,7 @@ TEST(test_TcpProxy_handle_client_disconnect) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect two clients
-        TcpClient client1, client2;
+        TcpClientB client1, client2;
         client1.connect("localhost", 6004);
         client2.connect("localhost", 6004);
         
@@ -216,11 +179,11 @@ TEST(test_TcpProxy_handle_client_disconnect) {
         
         // Client2 should still work (proxy handled client1 disconnect gracefully)
         client2.send("StillWorking");
-        bool available = wait_for_available(client2, 3000);
+        bool available = TestTcpUtils::wait_for_available(client2, 3000);
         string response;
         if (available) response = client2.read();
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5004);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5004);
         
         assert(available && "Client 2 should still work after client 1 disconnect");
         assert(response == "StillWorking" && "Proxy should handle client disconnect gracefully");
@@ -231,7 +194,7 @@ TEST(test_TcpProxy_handle_client_disconnect) {
 // Test: should handle server disconnect gracefully by removing all clients
 // =============================================================================
 TEST(test_TcpProxy_handle_server_disconnect) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout_cerr([]() {
         // Start backend echo server on port 5005
@@ -247,11 +210,11 @@ TEST(test_TcpProxy_handle_server_disconnect) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect client through proxy
-        TcpClient client;
+        TcpClientB client;
         client.connect("localhost", 6005);
         
         // Shutdown the backend server (simulating server disconnect)
-        TcpClient directClient;
+        TcpClientB directClient;
         directClient.connect("localhost", 5005);
         directClient.send("shutdown");
         
@@ -273,7 +236,7 @@ TEST(test_TcpProxy_handle_server_disconnect) {
 // Test: should handle errors gracefully
 // =============================================================================
 TEST(test_TcpProxy_handle_errors_gracefully) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout([]() {
         // Start backend echo server on port 5006
@@ -289,11 +252,11 @@ TEST(test_TcpProxy_handle_errors_gracefully) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect client and verify normal operation
-        TcpClient client;
+        TcpClientB client;
         client.connect("localhost", 6006);
         client.send("TestMessage");
         
-        bool available = wait_for_available(client, 3000);
+        bool available = TestTcpUtils::wait_for_available(client, 3000);
         string response;
         if (available) response = client.read();
         
@@ -303,15 +266,15 @@ TEST(test_TcpProxy_handle_errors_gracefully) {
         this_thread::sleep_for(chrono::milliseconds(200));
         
         // Connect another client - proxy should still work
-        TcpClient client2;
+        TcpClientB client2;
         client2.connect("localhost", 6006);
         client2.send("AfterError");
         
-        bool available2 = wait_for_available(client2, 3000);
+        bool available2 = TestTcpUtils::wait_for_available(client2, 3000);
         string response2;
         if (available2) response2 = client2.read();
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5006);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5006);
         
         assert(available && "First client should work");
         assert(response == "TestMessage" && "First message should be forwarded");
@@ -324,7 +287,7 @@ TEST(test_TcpProxy_handle_errors_gracefully) {
 // Test: should handle concurrent clients at the same time
 // =============================================================================
 TEST(test_TcpProxy_concurrent_clients) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout([]() {
         // Start backend echo server on port 5007
@@ -340,7 +303,7 @@ TEST(test_TcpProxy_concurrent_clients) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect multiple clients concurrently
-        TcpClient client1, client2, client3;
+        TcpClientB client1, client2, client3;
         string response1, response2, response3;
         double elapsed1 = 0, elapsed2 = 0, elapsed3 = 0;
         
@@ -352,19 +315,19 @@ TEST(test_TcpProxy_concurrent_clients) {
         thread t1([&]() {
             Stopper stopper;
             client1.send("Concurrent1");
-            if (wait_for_available(client1, 5000)) response1 = client1.read();
+            if (TestTcpUtils::wait_for_available(client1, 5000)) response1 = client1.read();
             elapsed1 = stopper.stop();
         });
         thread t2([&]() {
             Stopper stopper;
             client2.send("Concurrent2");
-            if (wait_for_available(client2, 5000)) response2 = client2.read();
+            if (TestTcpUtils::wait_for_available(client2, 5000)) response2 = client2.read();
             elapsed2 = stopper.stop();
         });
         thread t3([&]() {
             Stopper stopper;
             client3.send("Concurrent3");
-            if (wait_for_available(client3, 5000)) response3 = client3.read();
+            if (TestTcpUtils::wait_for_available(client3, 5000)) response3 = client3.read();
             elapsed3 = stopper.stop();
         });
         
@@ -372,7 +335,7 @@ TEST(test_TcpProxy_concurrent_clients) {
         if (t2.joinable()) t2.join();
         if (t3.joinable()) t3.join();
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5007);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5007);
         
         assert(response1 == "Concurrent1" && "Client 1 should receive correct response");
         assert(response2 == "Concurrent2" && "Client 2 should receive correct response");
@@ -389,7 +352,7 @@ TEST(test_TcpProxy_concurrent_clients) {
 // Test: proxy should work with rapid connect/disconnect cycles
 // =============================================================================
 TEST(test_TcpProxy_rapid_connect_disconnect) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout([]() {
         // Start backend echo server on port 5008
@@ -406,23 +369,23 @@ TEST(test_TcpProxy_rapid_connect_disconnect) {
         
         // Rapidly connect and disconnect multiple clients
         for (int i = 0; i < 5; i++) {
-            TcpClient client;
+            TcpClientB client;
             client.connect("localhost", 6008);
             client.send("rapid" + to_string(i));
-            wait_for_available(client, 2000);
+            TestTcpUtils::wait_for_available(client, 2000);
             client.disconnect();
         }
         
         // Final client to verify proxy is still healthy
-        TcpClient finalClient;
+        TcpClientB finalClient;
         finalClient.connect("localhost", 6008);
         finalClient.send("FinalTest");
         
-        bool available = wait_for_available(finalClient, 3000);
+        bool available = TestTcpUtils::wait_for_available(finalClient, 3000);
         string response;
         if (available) response = finalClient.read();
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5008);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5008);
         
         assert(available && "Proxy should work after rapid connect/disconnect");
         assert(response == "FinalTest" && "Proxy should handle rapid connections");
@@ -433,7 +396,7 @@ TEST(test_TcpProxy_rapid_connect_disconnect) {
 // Test: proxy should forward multiple messages sequentially
 // =============================================================================
 TEST(test_TcpProxy_multiple_messages_sequential) {
-    wait_for_port_release();
+    TestTcpUtils::wait_for_port_release();
     
     capture_cout([]() {
         // Start backend echo server on port 5009
@@ -449,7 +412,7 @@ TEST(test_TcpProxy_multiple_messages_sequential) {
         this_thread::sleep_for(chrono::milliseconds(100));
         
         // Connect client and send multiple messages
-        TcpClient client;
+        TcpClientB client;
         client.connect("localhost", 6009);
         
         vector<string> messages = {"First", "Second", "Third", "Fourth"};
@@ -457,12 +420,12 @@ TEST(test_TcpProxy_multiple_messages_sequential) {
         
         for (const auto& msg : messages) {
             client.send(msg);
-            if (wait_for_available(client, 3000)) {
+            if (TestTcpUtils::wait_for_available(client, 3000)) {
                 responses.push_back(client.read());
             }
         }
         
-        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5009);
+        TestTcpUtils::shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5009);
         
         assert(responses.size() == messages.size() && "Should receive all responses");
         for (size_t i = 0; i < messages.size(); i++) {
