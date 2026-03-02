@@ -145,7 +145,7 @@ protected:
         cleanup();
     }
 
-private:
+// private:
     string backendHost;
     uint16_t backendPort;
 

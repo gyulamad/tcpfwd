@@ -37,7 +37,7 @@ protected:
     }
 
     void onClientConnect(int fd, const string& addr) override {
-        cout << "[+] Client " << fd << " connected from " << addr << "\n";
+        cout << "127.0.0.1 " << fd << " connected from " << addr << "\n";
         echoQueues[fd] = EchoState{};
     }
 
