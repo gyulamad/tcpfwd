@@ -4,6 +4,7 @@
 
 #include "../cpptools/misc/TEST.hpp"
 #include "../cpptools/misc/capture_cout.hpp"
+#include "../cpptools/misc/capture_cout_cerr.hpp"
 #include "../cpptools/misc/Stopper.hpp"
 #include <thread>
 #include <chrono>
@@ -45,13 +46,34 @@ static void wait_for_port_release(int delayMs = 1000) {
     this_thread::sleep_for(chrono::milliseconds(delayMs));
 }
 
+// Helper: shutdown backend and stop proxy
+static void shutdown_test_resources(EchoServer& /*backend*/, thread& backendThread, 
+                                    TcpProxy& proxy, thread& proxyThread,
+                                    int backendPort) {
+    // Send shutdown to backend directly
+    TcpClient shutdownClient;
+    try {
+        shutdownClient.connect("localhost", backendPort);
+        shutdownClient.send("shutdown");
+    } catch (...) {
+        // Ignore if shutdown fails
+    }
+    
+    // Wait for backend to stop
+    if (backendThread.joinable()) backendThread.join();
+    
+    // Stop proxy
+    proxy.stop();
+    if (proxyThread.joinable()) proxyThread.join();
+}
+
 // =============================================================================
 // Test: should accept tcp client connections
 // =============================================================================
 TEST(test_TcpProxy_accept_client_connections) {
     wait_for_port_release();
     
-    capture_cout([]() {
+    capture_cout_cerr([]() {
         // Start backend echo server on port 5001
         EchoServer backend;
         thread backendThread([&backend]() { backend.listen(5001); });
@@ -74,14 +96,7 @@ TEST(test_TcpProxy_accept_client_connections) {
             connected = false;
         }
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5001);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5001);
         
         assert(connected && "Proxy should accept client connections");
     });
@@ -123,14 +138,7 @@ TEST(test_TcpProxy_maintain_channel_per_client) {
         if (avail1) response1 = client1.read();
         if (avail2) response2 = client2.read();
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5002);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5002);
         
         assert(avail1 && "Client 1 should receive response through proxy");
         assert(avail2 && "Client 2 should receive response through proxy");
@@ -170,14 +178,7 @@ TEST(test_TcpProxy_forward_data_bidirectional) {
         string response;
         if (available) response = client.read();
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5003);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5003);
         
         assert(available && "Response should be forwarded back through proxy");
         assert(response == "HelloThroughProxy" && "Data should be forwarded bidirectionally");
@@ -190,7 +191,7 @@ TEST(test_TcpProxy_forward_data_bidirectional) {
 TEST(test_TcpProxy_handle_client_disconnect) {
     wait_for_port_release();
     
-    capture_cout([]() {
+    capture_cout_cerr([]() {
         // Start backend echo server on port 5004
         EchoServer backend;
         thread backendThread([&backend]() { backend.listen(5004); });
@@ -219,14 +220,7 @@ TEST(test_TcpProxy_handle_client_disconnect) {
         string response;
         if (available) response = client2.read();
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5004);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5004);
         
         assert(available && "Client 2 should still work after client 1 disconnect");
         assert(response == "StillWorking" && "Proxy should handle client disconnect gracefully");
@@ -239,7 +233,7 @@ TEST(test_TcpProxy_handle_client_disconnect) {
 TEST(test_TcpProxy_handle_server_disconnect) {
     wait_for_port_release();
     
-    capture_cout([]() {
+    capture_cout_cerr([]() {
         // Start backend echo server on port 5005
         EchoServer backend;
         thread backendThread([&backend]() { backend.listen(5005); });
@@ -317,14 +311,7 @@ TEST(test_TcpProxy_handle_errors_gracefully) {
         string response2;
         if (available2) response2 = client2.read();
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5006);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5006);
         
         assert(available && "First client should work");
         assert(response == "TestMessage" && "First message should be forwarded");
@@ -385,14 +372,7 @@ TEST(test_TcpProxy_concurrent_clients) {
         if (t2.joinable()) t2.join();
         if (t3.joinable()) t3.join();
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5007);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5007);
         
         assert(response1 == "Concurrent1" && "Client 1 should receive correct response");
         assert(response2 == "Concurrent2" && "Client 2 should receive correct response");
@@ -442,14 +422,7 @@ TEST(test_TcpProxy_rapid_connect_disconnect) {
         string response;
         if (available) response = finalClient.read();
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5008);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5008);
         
         assert(available && "Proxy should work after rapid connect/disconnect");
         assert(response == "FinalTest" && "Proxy should handle rapid connections");
@@ -489,14 +462,7 @@ TEST(test_TcpProxy_multiple_messages_sequential) {
             }
         }
         
-        // Cleanup: shutdown backend directly and stop proxy
-        TcpClient shutdownClient;
-        shutdownClient.connect("localhost", 5009);
-        shutdownClient.send("shutdown");
-        
-        if (backendThread.joinable()) backendThread.join();
-        proxy.stop();
-        if (proxyThread.joinable()) proxyThread.join();
+        shutdown_test_resources(backend, backendThread, proxy, proxyThread, 5009);
         
         assert(responses.size() == messages.size() && "Should receive all responses");
         for (size_t i = 0; i < messages.size(); i++) {
