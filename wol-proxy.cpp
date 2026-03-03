@@ -16,13 +16,15 @@ public:
         args.addHelp(1, "port", "Listening port number");
         args.addHelp(2, "address", "Server addres:port for forwarding");
         args.addHelp(3, "mac", "Server MAC addres");
+        args.addHelp(4, "cmd", "SSH command to run when server wakes up");
         int port = args.get<int>(1);
         vector<string> addr = trim(explode(":", args.get<string>(2)));
         if (addr.size() != 2)
             throw ERROR("Invalid address format. Use <host>:<port>");
         string mac = args.get<string>(3);
-        WolProxy s(mac);
-        s.forward(port, addr[0], parse<int>(addr[1]));
+        string cmd = args.getopt<string>(4, "");
+        WolProxy s;
+        s.forward(port, addr[0], parse<int>(addr[1]), mac, cmd);
         return 0;
     }
 };

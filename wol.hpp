@@ -7,7 +7,8 @@
 
 using namespace std;
 
-inline void wol(
+// returns true when woke up, false if already was awaik
+inline bool wol(
     const string& mac, const string& addr, 
     const string& cmd_ping = "ping -c 1 -W 1 {{addr}}", 
     const string& cmd_wol = "wakeonlan -i {{addr}} {{mac}}",
@@ -26,5 +27,7 @@ inline void wol(
             retry--;
             callback(retry);
         }
+        return true;
     }
+    return false;
 }
