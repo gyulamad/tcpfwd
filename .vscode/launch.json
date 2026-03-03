@@ -80,7 +80,8 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/wol-proxy",
 			"args": [
-                "9091", "192.168.1.197:8080", "50:65:F3:2D:45:3F" // llamacpp-server
+                 // llamacpp-server
+                "9091", "192.168.1.197:8080", "192.168.1.255", "50:65:F3:2D:45:3F", "gyula", "./llamacpp-server.sh GLM-5 200000"
             ],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
