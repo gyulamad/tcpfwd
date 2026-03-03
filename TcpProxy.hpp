@@ -58,7 +58,7 @@ protected:
         
         auto backend = make_unique<TcpClientNB>();
         backend->connect(backendHost, backendPort);
-        backends[fd] = BackendState{::move(backend), addr};
+        backends[fd] = BackendState{::move(backend), addr, {}};
     }
 
     void onClientDisconnect(int fd) override {
@@ -83,13 +83,19 @@ protected:
 
     void onRawData(int clientFd, string& buf) override {
         auto it = backends.find(clientFd);
-        if (it == backends.end() || !it->second.backend->isConnected()) {
+        if (it == backends.end()) {
             buf.clear();
             return;
         }
 
+        auto& backend = it->second.backend;
         if (!buf.empty()) {
-            it->second.backend->send(buf);
+            if (backend->isConnected()) {
+                backend->send(buf);
+            } else if (backend->isConnecting()) {
+                // Buffer data while backend is connecting
+                it->second.pendingData.append(buf);
+            }
             buf.clear();
         }
     }
@@ -152,6 +158,7 @@ protected:
     struct BackendState {
         unique_ptr<TcpClientNB> backend;
         string clientAddr;
+        string pendingData;  // Buffer for data received while connecting
     };
 
     unordered_map<int, BackendState> backends;
@@ -179,8 +186,15 @@ protected:
             }
 
             // Handle write (connection completion or data sending)
-            if (FD_ISSET(bfd, &writeSet))
+            if (FD_ISSET(bfd, &writeSet)) {
+                bool wasConnecting = backend->isConnecting();
                 backend->handleWrite();
+                // Flush pending data when connection completes
+                if (wasConnecting && backend->isConnected() && !it->second.pendingData.empty()) {
+                    backend->send(it->second.pendingData);
+                    it->second.pendingData.clear();
+                }
+            }
 
             // Handle read
             if (FD_ISSET(bfd, &readSet)) {
