@@ -200,9 +200,22 @@ protected:
             if (FD_ISSET(bfd, &readSet)) {
                 ssize_t n = backend->handleRead();
                 if (n == 0) {
-                    // Backend closed connection
+                    // Backend closed connection - forward any remaining data first
+                    const string& remaining = backend->peekReceived();
+                    if (!remaining.empty()) {
+                        sendToClient(clientFd, remaining);
+                        backend->consumeReceived(remaining.size());
+                    }
+                    // Graceful close: let client sendQueue drain before disconnecting
                     cout << "[-] Backend closed for client " << clientFd << endl;
-                    disconnectClient(clientFd);
+                    auto cit = clients.find(clientFd);
+                    if (cit != clients.end() && !cit->second.sendQueue.empty()) {
+                        // Data pending - close after flush
+                        closeAfterFlush(clientFd);
+                    } else {
+                        // No pending data - close immediately
+                        disconnectClient(clientFd);
+                    }
                     continue;
                 }
             }

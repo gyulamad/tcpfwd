@@ -21,6 +21,7 @@ uses the same port as the tests or too slow/fast
 that could break the tests so we have to be able to replace
 these numbers in a central config place instead hard coding 
 them in each tests.
+(priority: low)
 
 - cleanup EchoServer and HelloServer:
 these two class made for testing in a way these having a delay
@@ -31,12 +32,15 @@ then replace all the usage of the Echo and Hello server to the Slow version to
 making sure we are not breaking any tests or behaviors we have right now,
 so this way later I can choose which version I want to use in my code 
 when I want to test or demonstrate the networking.
+Basically we need to move the delay logic into the Slow**Server child classes
+(priority: low)
 
 
 - replace TcpClient.hpp with TcpClientNB.hpp
     rename TcpClientNB to TcpClient and remove the old (deprecated) TcpClient as it was created for testing only.
     you probably should refactor the existing tests and every other usages of the old TcpClient class to use the new one.
     in result we should have a new TcpClient.hpp and the TcpClientNB should not exists anymore.
+(done - TcpClientB and TcpClientNB classes introduced)
 
 - create a WolProxy.hpp using the TcpProxy:
 WOL server if not available
@@ -46,6 +50,12 @@ OR
 (logs, user/xy process activities etc) and
 shutdown the server when it's inactive
 OR both
+(priority: high)
+(in progress)
+note: 
+- we will move the shutdown logic into the server, no need to implement for now,
+this task is only about to WOL, - no remote SSL
+
 
 
 ** AI takes: **
