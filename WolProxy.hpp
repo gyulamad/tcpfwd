@@ -19,9 +19,16 @@ public:
     }
 
     void onClientConnect(int fd, const string& addr) override {
-        if (wol(wolip, mac, backendHost) && !ssh.empty()) {
-            exec(ssh, true);
-            this->ssh = "";
+        LOG("Client connected, ping to see the server state...");
+        bool p = ping(backendHost);
+        LOG("Server is " + (p ? "up" : "down, wake on lan..."));
+        if (!p && wol(wolip, mac, backendHost) && !ssh.empty()) {
+            LOG("Server is up now");
+            if (!p) {
+                LOG("SSH: " + ssh);
+                exec(ssh, true);
+            }
+            // this->ssh = "";
         }
         TcpProxy::onClientConnect(fd, addr);
     }
