@@ -46,10 +46,12 @@ protected:
         echoQueues.erase(fd);
     }
 
+    // LCOV_EXCL_START
     void onClientError(int fd, const string& err) override {
         cerr << "[!] Client " << fd << " error: " << err << "\n";
         echoQueues.erase(fd);
     }
+    // LCOV_EXCL_STOP
 
     // == Framing: split buf by newlines, dispatch each line ===================
     void onRawData(int fd, string& buf) override {

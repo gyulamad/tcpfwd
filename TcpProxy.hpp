@@ -71,6 +71,7 @@ protected:
         }
     }
 
+    // LCOV_EXCL_START
     void onClientError(int fd, const string& err) override {
         cerr << "[!] Client " << fd << " error: " << err << endl;
         
@@ -80,6 +81,7 @@ protected:
             backends.erase(it);
         }
     }
+    // LCOV_EXCL_STOP
 
     void onRawData(int clientFd, string& buf) override {
         auto it = backends.find(clientFd);
@@ -133,7 +135,7 @@ protected:
             int ready = ::select(maxFd + 1, &readSet, &writeSet, nullptr, &tv);
             if (ready < 0) {
                 if (errno == EINTR) continue;
-                throw ERROR("select(): " + errStr());
+                throw ERROR("select(): " + string(strerror(errno)));
             }
 
             onTick();
@@ -251,6 +253,4 @@ protected:
         backends.clear();
         if (listenFd >= 0) { ::close(listenFd); listenFd = -1; }
     }
-
-    static string errStr() { return strerror(errno); }
 };

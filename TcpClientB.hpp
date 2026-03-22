@@ -47,11 +47,11 @@ public:
             throw ERROR("getaddrinfo(): " + string(gai_strerror(rc)));
 
         fd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-        if (fd < 0) { freeaddrinfo(res); throw ERROR("socket(): " + errStr()); }
+        if (fd < 0) { freeaddrinfo(res); throw ERROR("socket(): " + string(strerror(errno))); }
 
         if (::connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
             freeaddrinfo(res);
-            throw ERROR("connect(): " + errStr());
+            throw ERROR("connect(): " + string(strerror(errno)));
         }
         freeaddrinfo(res);
     }
@@ -68,7 +68,7 @@ public:
         size_t sent = 0;
         while (sent < data.size()) {
             ssize_t n = ::send(fd, data.c_str() + sent, data.size() - sent, MSG_NOSIGNAL);
-            if (n < 0) throw ERROR("send(): " + errStr());
+            if (n < 0) throw ERROR("send(): " + string(strerror(errno)));
             sent += static_cast<size_t>(n);
         }
     }
@@ -90,7 +90,7 @@ public:
         while (readBuf.find('\n') == string::npos) {
             char buf[1024];
             ssize_t n = ::recv(fd, buf, sizeof(buf), 0);
-            if (n < 0) throw ERROR("recv(): " + errStr());
+            if (n < 0) throw ERROR("recv(): " + string(strerror(errno)));
             if (n == 0) throw ERROR("Connection closed by peer");
             readBuf.append(buf, n);
         }
@@ -128,6 +128,4 @@ private:
     void requireConnected() const {
         if (fd < 0) throw ERROR("TcpClient: not connected");
     }
-
-    static string errStr() { return strerror(errno); }
 };

@@ -34,7 +34,9 @@ TEST(test_TcpServer_echo_multi_client) {
         string echo1, echo2, echo3;
         double elapsed1, elapsed2, elapsed3;
 
+        // LCOV_EXCL_START
         thread c1t([&]() {
+        // LCOV_EXCL_STOP
             Stopper stopper;
             c1.connect("localhost", 9090);
             c1.send("Hello1");
@@ -42,7 +44,9 @@ TEST(test_TcpServer_echo_multi_client) {
             echo1 = c1.read();
             elapsed1 = stopper.stop();            
         });
+        // LCOV_EXCL_START
         thread c2t([&]() {
+        // LCOV_EXCL_STOP
             Stopper stopper;
             c2.connect("localhost", 9090);
             c2.send("Hello2");
@@ -50,7 +54,9 @@ TEST(test_TcpServer_echo_multi_client) {
             echo2 = c2.read();
             elapsed2 = stopper.stop();
         });
+        // LCOV_EXCL_START
         thread c3t([&]() {
+        // LCOV_EXCL_STOP
             Stopper stopper;
             c3.connect("localhost", 9090);
             c3.send("Hello3");

@@ -45,7 +45,7 @@ public:
         fd = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         if (fd < 0) {
             freeaddrinfo(res);
-            lastError = "socket(): " + errStr();
+            lastError = "socket(): " + string(strerror(errno));
             return;
         }
 
@@ -54,7 +54,7 @@ public:
         if (::connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
             if (errno != EINPROGRESS) {
                 freeaddrinfo(res);
-                lastError = "connect(): " + errStr();
+                lastError = "connect(): " + string(strerror(errno));
                 ::close(fd);
                 fd = -1;
                 return;
@@ -89,7 +89,7 @@ public:
             int error = 0;
             socklen_t len = sizeof(error);
             if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0) {
-                lastError = error != 0 ? "connect(): " + string(strerror(error)) : "connect(): " + errStr();
+                lastError = error != 0 ? "connect(): " + string(strerror(error)) : "connect(): " + string(strerror(errno));
                 disconnect();
                 return false;
             }
@@ -104,7 +104,7 @@ public:
         ssize_t n = ::send(fd, buf.data(), buf.size(), MSG_NOSIGNAL);
         if (n < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) return false;
-            lastError = "send(): " + errStr();
+            lastError = "send(): " + string(strerror(errno));
             disconnect();
             return false;
         }
@@ -123,7 +123,7 @@ public:
         ssize_t n = ::recv(fd, buf, sizeof(buf), 0);
         if (n < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) return -1;
-            lastError = "recv(): " + errStr();
+            lastError = "recv(): " + string(strerror(errno));
             disconnect();
             return -1;
         }
@@ -165,6 +165,4 @@ private:
         int flags = fcntl(fd, F_GETFL, 0);
         fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
-
-    static string errStr() { return strerror(errno); }
 };

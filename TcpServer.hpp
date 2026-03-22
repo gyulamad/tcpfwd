@@ -137,7 +137,7 @@ protected:
             int ready = ::select(maxFd + 1, &readSet, &writeSet, nullptr, &tv);
             if (ready < 0) {
                 if (errno == EINTR) continue;
-                throw ERROR("select(): " + errStr());
+                throw ERROR("select(): " + string(strerror(errno)));
             }
 
             onTick();
@@ -170,7 +170,7 @@ protected:
             int cfd = ::accept(listenFd, reinterpret_cast<sockaddr*>(&addr), &len);
             if (cfd < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) break;
-                onClientError(-1, "accept(): " + errStr());
+                onClientError(-1, "accept(): " + string(strerror(errno)));
                 break;
             }
             setNonBlocking(cfd);
@@ -189,7 +189,7 @@ protected:
         ssize_t n = ::recv(fd, buf, sizeof(buf), 0);
         if (n < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-            onClientError(fd, "recv(): " + errStr());
+            onClientError(fd, "recv(): " + string(strerror(errno)));
             disconnectClient(fd);
             return;
         }
@@ -208,7 +208,7 @@ protected:
         ssize_t n = ::send(fd, buf.data(), buf.size(), MSG_NOSIGNAL);
         if (n < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) return;
-            onClientError(fd, "send(): " + errStr());
+            onClientError(fd, "send(): " + string(strerror(errno)));
             disconnectClient(fd);
             return;
         }
@@ -223,13 +223,11 @@ protected:
         fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
 
-    static string errStr() { return strerror(errno); }
-
 private:
     // == Socket setup ==========================================================
     void setupListenSocket(uint16_t port) {
         listenFd = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (listenFd < 0) throw ERROR("socket(): " + errStr());
+        if (listenFd < 0) throw ERROR("socket(): " + string(strerror(errno)));
 
         int opt = 1;
         ::setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -241,9 +239,9 @@ private:
         addr.sin_port        = htons(port);
 
         if (::bind(listenFd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
-            throw ERROR("bind(): " + errStr());
+            throw ERROR("bind(): " + string(strerror(errno)));
 
         if (::listen(listenFd, SOMAXCONN) < 0)
-            throw ERROR("listen(): " + errStr());
+            throw ERROR("listen(): " + string(strerror(errno)));
     }
 };

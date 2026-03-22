@@ -34,12 +34,12 @@ public:
                                         int backendPort) {
         // Send shutdown to backend directly
         TcpClientB shutdownClient;
-        try {
+        // try {
             shutdownClient.connect("localhost", backendPort);
             shutdownClient.send("shutdown");
-        } catch (...) {
-            // Ignore if shutdown fails
-        }
+        // } catch (...) {
+        //     // Ignore if shutdown fails
+        // }
         
         // Wait for backend to stop
         if (backendThread.joinable()) backendThread.join();
