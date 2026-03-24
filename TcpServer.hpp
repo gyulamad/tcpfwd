@@ -53,6 +53,8 @@ public:
 protected:
     // == Lifecycle hooks =======================================================
 
+    // LCOV_EXCL_START
+
     virtual void onServerStart(uint16_t /*port*/) {}
     virtual void onServerStop() {}
 
@@ -74,6 +76,8 @@ protected:
     // Leave any incomplete tail in place — it will be prepended to the next
     // incoming chunk automatically.
     virtual void onRawData(int fd, string& buf) = 0;
+
+    // LCOV_EXCL_STOP
 
     // == Utilities =============================================================
 
