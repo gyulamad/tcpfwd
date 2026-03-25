@@ -6,7 +6,7 @@
 			"type": "shell",
 			"command": "./builder",
 			"args": [
-				"echo.cpp",
+				"cpptools/net/examples/echo/echo.cpp",
 				"--mode=debug,strict"
 			],
 			"group": {
@@ -22,7 +22,7 @@
 			"type": "shell",
 			"command": "./builder",
 			"args": [
-				"hello.cpp",
+				"cpptools/net/examples/hello/hello.cpp",
 				"--mode=debug,strict"
 			],
 			"group": {
@@ -38,7 +38,7 @@
 			"type": "shell",
 			"command": "./builder",
 			"args": [
-				"proxy.cpp",
+				"cpptools/net/examples/proxy/proxy.cpp",
 				"--mode=debug,strict"
 			],
 			"group": {
@@ -54,7 +54,23 @@
 			"type": "shell",
 			"command": "./builder",
 			"args": [
-				"wol-proxy.cpp",
+				"cpptools/net/examples/wol-proxy/wol-proxy.cpp",
+				"--mode=debug,strict"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "build-debug-llamacpp-wol-proxy",
+			"type": "shell",
+			"command": "./builder",
+			"args": [
+				"cpptools/net/examples/llamacpp-wol-proxy/llamacpp-wol-proxy.cpp",
 				"--mode=debug,strict"
 			],
 			"group": {
@@ -70,7 +86,7 @@
 			"type": "shell",
 			"command": "./builder",
 			"args": [
-				"tests/tests.cpp",
+				"cpptools/net/tests/tests.cpp",
 				"--mode=debug,strict,test",
                 "--args=\"-DTEST_SHOW_DETAILS\""
 			],
@@ -87,7 +103,7 @@
 			"type": "shell",
 			"command": "./builder",
 			"args": [
-				"tests/tests.cpp",
+				"cpptools/net/tests/tests.cpp",
 				"--mode=coverage,strict,test",
                 "--coverage-exclude", "\"cpptools/misc/*\"",
 				// "--args=-DTEST_SERVER_PORT=9090 -DTEST_PROXY_PORT=9091",
