@@ -88,7 +88,7 @@
                 "50:65:F3:2D:45:3F", 
                 "gyula", 
                 // "./llamacpp-server.sh Qwen3 200000"
-                "./llamacpp-server.sh MiniMax-M2.5 200000"
+                "./llamacpp-server.sh MiniMax-M2.5 100000"
                 // "./llamacpp-server.sh GLM-5 200000"
             ],
 			"stopAtEntry": false,
