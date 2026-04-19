@@ -1,2 +1,5 @@
 .build/
 builder
+.clangd
+.kilocode/
+libs/
