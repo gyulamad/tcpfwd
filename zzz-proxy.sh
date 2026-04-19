@@ -1,0 +1,1 @@
+./builder cpptools/net/examples/zzz-proxy/zzz-proxy.cpp --mode=strict --run --run-args="8080 monster:8080 --wakecmd=cpptools/net/examples/zzz-proxy/srv/ai/start.sh --checkcmd=cpptools/net/examples/zzz-proxy/srv/ai/is_loaded.sh --sleepcmd=cpptools/net/examples/zzz-proxy/srv/ai/shutdown.sh --timeout=1800"
