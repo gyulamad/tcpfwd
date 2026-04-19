@@ -82,6 +82,22 @@
 			]
 		},
 		{
+			"label": "build-debug-zzz-proxy",
+			"type": "shell",
+			"command": "./builder",
+			"args": [
+				"cpptools/net/examples/zzz-proxy/zzz-proxy.cpp",
+				"--mode=debug,strict"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
 			"label": "build-debug-tests",
 			"type": "shell",
 			"command": "./builder",
