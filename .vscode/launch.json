@@ -176,6 +176,29 @@
 			"miDebuggerPath": "/usr/bin/gdb"
 		},
 		{
+			"name": "http-scripts.cpp (debug)",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/http-scripts/http-scripts",
+			"args": [
+				"9090",
+		    ],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			],
+			"preLaunchTask": "build-debug-http-scripts",
+			"miDebuggerPath": "/usr/bin/gdb"
+		},
+		{
 			"name": "tests.cpp (debug)",
 			"type": "cppdbg",
 			"request": "launch",
