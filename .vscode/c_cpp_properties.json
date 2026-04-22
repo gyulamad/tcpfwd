@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "name": "Linux",
+      "name": "linux-clang-x64",
       "includePath": [
         "${workspaceFolder}/**",
         "/usr/include/**"

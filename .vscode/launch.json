@@ -1,17 +1,17 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
 		{
 			"name": "echo.cpp (debug)",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/echo/echo",
 			"args": [
-                "9090"
-            ],
+				"9090"
+			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -33,8 +33,8 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/hello/hello",
 			"args": [
-                "9090"
-            ],
+				"9090"
+			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -56,9 +56,9 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/proxy/proxy",
 			"args": [
-                // "9091", "localhost:9090" // testing with hello
-                "9091", "192.168.1.197:8080" // llamacpp-server
-            ],
+				"9091",
+				"192.168.1.197:8080"
+			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -80,17 +80,13 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/wol-proxy/wol-proxy",
 			"args": [
-                 // llamacpp-server
-                // "9091", "192.168.1.197:8080", "192.168.1.255", "50:65:F3:2D:45:3F", "gyula", "./llamacpp-server.sh GLM-5 200000 >> llamacpp-server.log"
-                "9091", 
-                "192.168.1.197:8080", 
-                "192.168.1.255", 
-                "50:65:F3:2D:45:3F", 
-                "gyula", 
-                // "./llamacpp-server.sh Qwen3 200000"
-                "./llamacpp-server.sh MiniMax-M2.5 100000"
-                // "./llamacpp-server.sh GLM-5 200000"
-            ],
+				"9091",
+				"192.168.1.197:8080",
+				"192.168.1.255",
+				"50:65:F3:2D:45:3F",
+				"gyula",
+				"./llamacpp-server.sh MiniMax-M2.5 100000"
+			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -112,17 +108,13 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/llamacpp-wol-proxy/llamacpp-wol-proxy",
 			"args": [
-                 // llamacpp-server
-                // "9091", "192.168.1.197:8080", "192.168.1.255", "50:65:F3:2D:45:3F", "gyula", "./llamacpp-server.sh GLM-5 200000 >> llamacpp-server.log"
-                "9091", 
-                "192.168.1.197:8080", 
-                "192.168.1.255", 
-                "50:65:F3:2D:45:3F", 
-                "gyula", 
-                // "./llamacpp-server.sh Qwen3 200000"
-                "./llamacpp-server.sh MiniMax-M2.5 200000"
-                // "./llamacpp-server.sh GLM-5 200000"
-            ],
+				"9091",
+				"192.168.1.197:8080",
+				"192.168.1.255",
+				"50:65:F3:2D:45:3F",
+				"gyula",
+				"./llamacpp-server.sh MiniMax-M2.5 200000"
+			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -146,20 +138,10 @@
 			"args": [
 				"9090",
 				"monster:8080",
-				"--wakecmd=cpptools/net/examples/zzz-proxy/srv/ai/start.sh",
-				"--checkcmd=cpptools/net/examples/zzz-proxy/srv/ai/is_loaded.sh",
-				"--sleepcmd=cpptools/net/examples/zzz-proxy/srv/ai/shutdown.sh",
-				"--timeout=30"                    // idle timeout in seconds
-
-				// Full example with Wake-on-LAN support:
-				// "9091",
-				// "monster.local:100000",
-				// "192.168.1.255",     // WOL broadcast IP
-				// "AA:BB:CC:DD:EE:F0", // target machine's NIC MAC address
-				// "./srv/ai/wakeup.sh && ./srv/ai/start.sh ModelName 100000",
-				// "./srv/ai/stop.sh user hostname",
-				// "300"
-		          ],
+				"--startcmd=cpptools/net/examples/zzz-proxy/srv/start.sh >> cpptools/net/examples/zzz-proxy/srv/output.log 2>&1",
+				"--stopcmd=cpptools/net/examples/zzz-proxy/srv/stop.sh >> cpptools/net/examples/zzz-proxy/srv/output.log 2>&1",
+				"--timeout=1800"
+			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -176,36 +158,11 @@
 			"miDebuggerPath": "/usr/bin/gdb"
 		},
 		{
-			"name": "http-scripts.cpp (debug)",
-			"type": "cppdbg",
-			"request": "launch",
-			"program": "${workspaceFolder}/.build/debug-strict/cpptools/net/examples/http-scripts/http-scripts",
-			"args": [
-				"9090",
-		    ],
-			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
-			"environment": [],
-			"externalConsole": false,
-			"MIMode": "gdb",
-			"setupCommands": [
-				{
-					"description": "Enable pretty-printing for gdb",
-					"text": "-enable-pretty-printing",
-					"ignoreFailures": true
-				}
-			],
-			"preLaunchTask": "build-debug-http-scripts",
-			"miDebuggerPath": "/usr/bin/gdb"
-		},
-		{
 			"name": "tests.cpp (debug)",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict-test/cpptools/net/tests/tests",
-			"args": [
-                //"--filter=test_TcpProxy_http_basicConnection"
-            ],
+			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -223,18 +180,16 @@
 		},
 		{
 			"name": "tests.cpp (coverage)",
-            "type": "node",
-            "request": "attach",
-			"preLaunchTask": "build-coverage-test",
+			"type": "node",
+			"request": "attach",
+			"preLaunchTask": "build-coverage-test"
 		},
 		{
 			"name": "misc/tests.cpp (debug)",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/.build/debug-strict-test/cpptools/misc/tests/tests",
-			"args": [
-                //"--filter=test_TcpProxy_http_basicConnection"
-            ],
+			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
@@ -252,9 +207,17 @@
 		},
 		{
 			"name": "misc/tests.cpp (coverage)",
-            "type": "node",
-            "request": "attach",
-			"preLaunchTask": "build-coverage-misc/test",
+			"type": "node",
+			"request": "attach",
+			"preLaunchTask": "build-coverage-misc/test"
 		},
-    ]
+		{
+			"name": "C/C++ Runner: Debug Session",
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "/mnt/windows/cpp/tcpfwd/cpptools/net/examples/zzz-proxy",
+			"program": "/mnt/windows/cpp/tcpfwd/cpptools/net/examples/zzz-proxy/build/Debug/outDebug"
+		}
+	]
 }
