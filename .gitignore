@@ -4,3 +4,5 @@ builder
 .kilocode/
 libs/
 *.log
+zzz-whitelist.ini
+zzz-proxy.sh
